@@ -556,3 +556,239 @@ Models       : 1
 Calls        : 1
 Time         : 0.001s (Solving: 0.00s 1st Model: 0.00s Unsat: 0.00s)
 CPU Time     : 0.001s
+
+** Definitions
+
+Many rules in a logic program can be thought of as definitions
+One can say, for instance, that rule (1.1) defines the predicate
+~large/1~ in terms of the predicate ~p/2~ ???,
+rule (2.1) defines ~child/2~ in terms ~parent/2~, and rule (2.7) defines ~p/2~
+
+#+begin_src prolog Rule 2.2
+parent(ann,bob). parent(bob,carol). parent(bob,dan).
+#+end_src
+
+*** DONE Exercise 2.11
+
+a. How would you define the predicate ~grandparent/2~ in terms of ~parent/2~ defined?
+
+   #+begin_src prolog
+    grandparent(X,Z) :- parent(X,Y), parent(Y,Z).
+   #+end_src
+
+b. Running *CLINGO* on the definition of =a.= combined with facts (2.2) what would the stable model produce?
+
+
+#+RESULTS:
+clingo version 5.6.2
+Reading from 211.lp
+Solving...
+Answer: 1
+parent(ann,bob) parent(bob,carol) parent(bob,dan) grandparent(ann,carol) grandparent(ann,dan)
+SATISFIABLE
+
+Models       : 1
+Calls        : 1
+Time         : 0.001s (Solving: 0.00s 1st Model: 0.00s Unsat: 0.00s)
+CPU Time     : 0.001s
+
+*** DONE Exercise 2.12
+
+a. How would you define the predicate ~sibling/2~ in terms of ~parent/2~?
+
+#+begin_src prolog
+siblings(X,Y) :- parent(Z,Y), parent(Z,X), X != Y.
+#+end_src
+
+b. If you run *CLINGO* on your definition, combined with facts (2.2), what stable model do you think it will produce?
+
+#+RESULTS:
+siblings(carol, dan)
+siblings(dan, carol)
+
+*** DONE Exercise 2.13
+
+Assuming that the atom ~enrolled(S,C)~ expresses that student ~S~ is
+enrolled in class ~C~, how would you define the set ~enrolled/1~ of all students who are enrolled in at least one class?
+
+#+begin_src prolog
+enrolled(S) :- enrolled(S,C).
+#+end_src
+
+*** DONE Exercise 2.14
+
+Assuming that the atom ~lives_in(X,C)~ expresses that person ~X~ lives
+in city ~C~, and that the atom ~same_city(X,Y)~ expresses that ~X~ and ~Y~ live in the same city, how would you define ~same_city/2~ in terms of ~lives_in/2~?
+
+#+begin_src prolog
+same_city(X,Y) :- lives_in(X,C), lives_in(Y,C), X!=Y.
+#+end_src
+
+=Solution from the PDF=:
+
+#+begin_src prolog
+same_city(X,Y) :- lives_in(X,C), lives_in(Y,C).
+#+end_src
+
+*** DONE Exercise 2.15
+
+Assuming that the atom ~age(X,N)~ expresses that person ~X~ is ~N~ years
+old, and that the atom ~older(X,Y)~ expresses that ~X~ is older than ~Y~, how would you define ~older/2~ in terms of ~age/2~?
+
+#+begin_src prolog
+older(X,Y) :- age(X,N), age(Y,M), X!=Y, N > M.
+#+end_src
+
+Sometimes the definition of a predicate consists of several rules. For instance, the pair of rules:
+
+#+begin_src prolog
+parent(X,Y) :- father(X,Y).
+parent(X,Y) :- mother(X,Y).
+#+end_src
+
+defines ~parent/2~ in terms of ~father/2~ and ~mother/2~.
+
+A predicate can be defined recursively. In a recursive definition, the defined predicate occurs not only in the heads of the rules but also in some of the bodies. The definition of ~ancestor/2~ in terms of ~parent/2~ is an example:
+
+#+begin_src prolog Rule 2.8
+ancestor(X,Y) :- parent(X,Y).
+ancestor(X,Z) :- ancestor(X,Y), ancestor(Y,Z).
+#+end_src
+
+*** DONE Exercise 2.16
+
+Running *CLINGO* on the program consisting of rules (2.2) and (2.8),
+what stable model would it produce?
+
+#+begin_src prolog
+ancestor(X,Y) :- parent(X,Y).
+ancestor(X,Z) :- ancestor(X,Y), ancestor(Y,Z).
+#+end_src
+
+
+#+begin_src prolog Rule 2.2
+parent(ann,bob). parent(bob,carol). parent(bob,dan).
+#+end_src
+
+If we run *CLINGO* on the program consisting of rules (2.2) and (2.8), what
+stable model do you expect it to produce?
+
+#+RESULTS:
+ancestor(ann,bob), ancestor(bob,carol), ancestor(bob,dan),
+ancestor(ann,carol), ancestor(ann,dan)
+
+Sometimes a predicate cannot be defined in one step, and auxiliary predicates have to be defined first
+
+Consider, for instance, the property of being a prime number between 1 and some upper bound, e.g. 5.
+
+It is easier to define the opposite property of being a composite number between 1 and 5.
+
+#+begin_src prolog Rule 2.9
+composite(N) :- N = 1..5, I = 2..N-1, N\I = 0.
+#+end_src
+
+Then ~prime/1~ can be defined in terms of ~composite/1~ by the rule:
+
+#+begin_src prolog Rule 2.10
+prime(N) :- N = 2..5, not composite(N).
+#+end_src
+
+Rule 2.10 is an example of the use of negation in a *CLINGO* program
+Recall that an atom is included in a stable model of a program, informally speaking, if it can be derived using its rules Section 1.3
+
+But in what sense can rule 2.10 be used to derive the atom ~prime(3)~?
+About the instance
+
+    ~prime(3) :- 3 = 2..5, not composite(3)~
+
+of that rule we can say that the expression
+
+    ~not composite(3)~
+
+in its body is justified in the sense that any attempt to use the rule 2.9
+to derive the atom ~composite(3)~ would fail
+
+The negation symbol ~not~, which is often used in logic programs, is said to represent ="negation as failure"=
+
+To emphasize this understanding of negation the rule 2.10 can be read as follows:
+
+    #+BEGIN_QUOTE
+    N is a prime number between 1 and 5 if
+    it is one of the numbers 2,...,5
+    and there is _no evidence_ that it is composite.
+    #+END_QUOTE
+
+Negation as failure is an important and difficult subject, and it is discussed in more detail in Section 5.1
+
+*** DONE Exercise 2.17
+
+Two integers are said to be /coprime/ if the only positive integer that divides both of them is 1
+
+We would like to generate the list of all integers from the set $\{1,...,N\}$ that are coprime with an integer $k$.
+
+For example using such a program in the with the cmd-line input of:
+
+    ~clingo coprimes.lp -c n=10 -c k=12~
+
+the expected output is:
+
+    ~coprime(1) coprime(5) coprime(7)~
+
+What rules are necessary in the lines  5 and 10 of the primes.lp file to get this result?
+
+#+begin_src prolog
+noncoprime(N) :- N = 2..n, I=2..N, N\I == 0, k\I == 0. %for line 5
+
+coprime(N) :- N = 1..n, not noncoprime(N). %for line 10
+#+end_src
+
+*** DONE Exercise 2.18
+
+Every non-negative integer can be represented as the sum of 4 complete squares, for instance:
+
+    ~7 = 22 + 12 + 12 + 12; 10 = 32 + 11 + 02 + 02~
+
+But if we want to represent a given number as the sum of only 3 complete squares, that may be impossible.
+The two smallest numbers that require 4 complete squares are 7 and 15.
+
+We would like to generate the list of all integers from the set $\{1,...,n\}$ that cannot be represented as the sum of 3 complete squares.
+What rules would you place in Lines 6 and 10 of Listing 2.5 to get such a program?
+
+#+begin_src prolog
+three(N) :- N = 1..n, I = 0..n, J = 0..n, K = 0..n, N = I**2+J**2+K**2.
+#+end_src
+
+*** DONE Exercise 2.19
+
+Listing 2.6 gives yet another example of a pair of definitions, one on top of the other.
+Before defining the property ~fac/1~ of being a factorial, we give a recursive definition of the binary relation ~fac/2~, "the factorial of ~N~ is ~F~." Note that there is no "achieved" comment after Line 5.
+Nothing of interest is achieved in the middle of a definition.
+Exercise 2.19. Consider the part of the program shown in Listing 2.6 that precedes the comment in Line 7.
+What atoms do you expect to see in its stable model if the value of n is 4?
+
+#+begin_src prolog
+% Factorials of numbers from 0 to n.
+
+% input: nonnegative integer n.
+fac(0 ,1).
+fac(N+1,F*(N+1)) :- fac(N,F), N<n.
+% achieved: fac/2 = {(0 ,0!) ,... ,(n,n !)}.
+
+fac(F) :- fac(N,F).
+% achieved: fac/1 = {0! ,... ,n!}.
+
+#show fac/1.
+#+end_src
+
+#+RESULTS:
+clingo version 5.6.2
+Reading from fac.lp
+Solving...
+Answer: 1
+fac(1) fac(2) fac(6) fac(24)
+SATISFIABLE
+
+Models       : 1
+Calls        : 1
+Time         : 0.001s (Solving: 0.00s 1st Model: 0.00s Unsat: 0.00s)
+CPU Time     : 0.001s
